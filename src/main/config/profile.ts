@@ -16,6 +16,7 @@ import { subStorePort } from '../resolve/server'
 import { mihomoCloseAllConnections, mihomoHotReloadConfig } from '../core/mihomoApi'
 import { checkProfileConfig, restartCore, type CheckProfileOptions } from '../core/manager'
 import { generateProfile, globalOverrideIdsNow } from '../core/factory'
+import { injectJmsDerivedGroups } from '../speedtest/runtime'
 import { addProfileUpdater, removeProfileUpdater } from '../core/profileUpdater'
 import {
   mihomoCorePath,
@@ -669,7 +670,9 @@ export async function validateProfileCandidate(
       }
       const result = compileSimpleConfig(draft, await getControledMihomoConfig())
       if (result.errors.length) throw new Error(result.errors.join('\n'))
-      await atomicWriteFile(candidatePath, result.yaml, { encoding: 'utf8' })
+      await atomicWriteFile(candidatePath, stringify(injectJmsDerivedGroups(parse(result.yaml))), {
+        encoding: 'utf8'
+      })
       await checkProfileConfig(candidatePath, core, undefined, opts)
       return
     }
@@ -682,6 +685,14 @@ export async function validateProfileCandidate(
       outputPath: candidatePath,
       updateRuntimeConfig: false
     })
+    if (existsSync(candidatePath)) {
+      const candidate = parse(await readFile(candidatePath, 'utf8'))
+      await atomicWriteFile(
+        candidatePath,
+        stringify(injectJmsDerivedGroups(candidate as Record<string, unknown>)),
+        { encoding: 'utf8' }
+      )
+    }
     await checkProfileConfig(candidatePath, core, item.ageSecretKey, opts)
   } finally {
     await rm(candidateDir, { recursive: true, force: true }).catch(() => {})
