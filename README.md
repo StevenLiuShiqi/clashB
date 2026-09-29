@@ -1,43 +1,115 @@
-<h3 align="center">
-  <img height='48px' src='./images/icon-white.png#gh-dark-mode-only'>
-  <img height='48px' src='./images/icon-black.png#gh-light-mode-only'>
-</h3>
+# clashB
 
-<h3 align="center">Another <a href="https://github.com/MetaCubeX/mihomo">Mihomo</a> GUI</h3>
+基于 **Clash Party + Mihomo** 的代理客户端二次开发项目，主要面向 macOS，增加真实下载测速和六路并行快速检查。
 
-<p align="center">
-  <a href="https://github.com/mihomo-party-org/clash-party/releases">
-    <img src="https://img.shields.io/github/release/mihomo-party-org/clash-party/all.svg">
-  </a>
-  <a href="https://t.me/mihomo_party_group">
-    <img src="https://img.shields.io/badge/Telegram-Group-blue?logo=telegram">
-  </a>
-</p>
-<div align='center'>
-<img width='90%' src="./images/preview.jpg">
-</div>
+保留订阅导入、节点切换和代理连接等原有功能。新增功能关注的是：**请求是否真正经过指定节点，以及这条线路的下载表现是否够用**，而不只是 ping 延迟。
 
-### 本项目认证稳定机场推荐：“[狗狗加速](https://party.dginv.click/#/register?code=ARdo0mXx)”
+> 当前为源码开发版本，尚未完成独立安装包发布与公证。应用名称及更新渠道仍沿用上游；上游安装包不包含本项目新增功能，使用上游更新可能覆盖本地修改。
 
-##### [狗狗加速 —— 技术流机场 Doggygo VPN](https://party.dginv.click/#/register?code=ARdo0mXx)
+## 功能
 
-- 高性能海外机场，稳定首选，海外团队，无跑路风险
-- Clash Party专属8折优惠码：party，仅有500份
-- Party专属链接注册送 3 天，每天 1G 流量 [免费试用](https://party.dginv.click/#/register?code=ARdo0mXx)
-- 优惠套餐每月仅需 15.8 元，160G 流量，年付 8 折
-- 全球首家支持Hysteria1/2 协议，集群负载均衡设计，高速专线，基于最新UDP quic技术，极低延迟，无视晚高峰，4K 秒开，配合Clash Party食用更省心！
-- 解锁流媒体及 ChatGPT
-- 官网：[https://狗狗加速.com](https://party.dginv.click/#/register?code=ARdo0mXx)
+- **六路快速检查**：最多同时检查 6 个节点，一轮显示全部结果，不在第一个节点达标后提前结束。
+- **单节点检查**：可以只检查指定节点，不必扫描整个代理组。
+- **逐个详细测速**：串行测量下载速度，支持按有效速度排序。
+- **手动快捷选点**：快速模式选择达标线路，详细模式选择本轮已测最快节点；不会自动切换日常线路。
+- **可取消、有预算**：中止当前任务和后续队列，限制每节点及整批测试时间、数据量。
+- **独立测速通道**：每个并发任务使用自己的本地入口与选择组，不共用一个不断切换的测速出口；失败不回退直连。
 
-### 特性
+## 两种检查模式
 
-- [x] 一键 Smart Core 规则覆写，基于 AI 模型自动选择最优节点 详细介绍请看 [这里](https://clashparty.org/docs/guide/smart-core)
-- [x] 开箱即用，无需服务模式的 Tun
-- [x] 多种配色主题可选，UI 焕然一新
-- [x] 支持大部分 Mihomo(Clash Meta) 常用配置修改
-- [x] 内置 Smart内核 与 Mihomo(Clash Meta) 内核
-- [x] 通过 WebDAV 一键备份和恢复配置
-- [x] 强大的覆写功能，任意修订配置文件
-- [x] 深度集成 Sub-Store，轻松管理订阅
+| 项目           | 快速检查（默认）                           | 详细测速                     |
+| -------------- | ------------------------------------------ | ---------------------------- |
+| 并发数         | 最多 6 个                                  | 1 个，逐个执行               |
+| 单节点时限     | 2 秒                                       | 5 秒                         |
+| 单节点数据上限 | 3 MiB                                      | 20 MiB                       |
+| 结果           | 达标 / 未快速达标 / 失败                   | 下载速度、有效性及失败原因   |
+| 快捷选点       | 优先保留已达标的当前节点，否则选择达标候选 | 选择本轮有效结果中最快的节点 |
 
-### 安装/使用指南见 [官方文档](https://clashparty.org)
+两种模式的整批上限均为 **3 分钟 / 200 MiB**，先达到哪个就停止。节点计时包含选点确认、连接、TLS 握手和下载；首次准备入口及结束后的清理还需要额外时间。
+
+### 如何理解“达标”
+
+快速模式的判定是：**在 2 秒内接收完 3 MiB 数据**。它是一个偏保守的短时下载检查，不是视频播放认证。
+
+- 六条线路同时下载会共享本机及上游带宽，**未快速达标不等于不能看视频**。
+- 快速模式不按并行速度排名，避免把带宽竞争结果当作节点的独立性能。
+- 所有节点都未达标时，可以选择其中一个单独复查，或切换到详细测速。
+- 测速源的下载表现不能保证目标视频平台可访问、解除地区限制或持续播放不卡顿。
+- `MiB/s` 与 `Mbps` 是不同单位；详细测速显示的是 `MiB/s`。
+
+数据预算按接收的响应体计算。当前接收块、在途数据、代理协议开销和重传可能造成额外消耗，**不是订阅计费流量的绝对上限**。
+
+## 使用方法
+
+1. 启动本项目构建的客户端，导入自己的 Mihomo / Clash 格式订阅。
+2. 打开 **代理** 页面，点击目标代理组旁的 **下载测速**。
+3. 保持默认 **快速检查：最多 6 个同时测**，选择 **本组全部实际节点**；也可以只选一个节点。
+4. 点击 **开始快速检查**，查看全部节点的结果。超过 6 个节点时自动分批处理。
+5. 有达标结果时，点击 **选择达标线路**；需要比较速度时，改用 **详细测速**。
+
+**取消测速**会停止当前任务；关闭弹窗不会取消，重新点击页头的下载测速按钮可以查看任务。
+
+默认使用 Cloudflare 的 HTTPS 下载测速源，也可以在面板中设置自定义地址。同一批固定一个地址，不自动换源、跟随重定向或重试。首次启用测速入口会热重载一次内核配置，可能短暂影响连接。
+
+快捷选点只针对发起测试的代理组，不更改分流规则。自动组以及需要连带修改其他子组的情况会提示限制，不会偷偷修改组类型。
+
+## 本地开发
+
+技术栈：Electron、React、TypeScript、Mihomo。
+
+准备 Node.js、Git 和 `package.json` 中 `packageManager` 指定的 pnpm 版本。首次安装需要联网下载 Electron、代理内核及配套资源。
+
+```sh
+git clone https://github.com/StevenLiuShiqi/clashB.git
+cd clashB
+pnpm install --frozen-lockfile
+pnpm dev
+```
+
+资源由安装生命周期中的 `prepare` 脚本生成。如果安装时跳过了脚本，或需要重新准备本机资源，执行：
+
+```sh
+pnpm run prepare
+```
+
+不要手工编辑 `pnpm-lock.yaml`、`extra/sidecar/` 或 `node_modules/.temp/`。
+
+### 构建 macOS 安装包
+
+在 macOS 上完成依赖和资源准备后执行：
+
+```sh
+pnpm build:mac
+```
+
+产物生成在 `dist/`。分发所需的签名、公证及独立更新渠道尚需单独配置；源码构建通过不代表安装包已完成验收。
+
+## 检查与测试
+
+```sh
+pnpm run format:check
+pnpm run lint:check
+pnpm run typecheck
+pnpm test
+```
+
+实际 Mihomo 集成测试默认跳过。提供独立测试内核后，可以验证并发入口隔离、节点选点和不直连回退：
+
+```sh
+MIHOMO_TEST_BINARY=/absolute/path/to/mihomo pnpm exec vitest run src/main/speedtest/mihomo.integration.test.ts
+```
+
+该集成测试只连接本机模拟代理和 HTTPS 服务，不读取真实订阅、不启用 TUN、不更改系统代理。测试目录中的 localhost 证书和私钥仅用于本机测试。
+
+自动化测试覆盖下载器、并发调度和独立 Mihomo 的本机模拟链路；**完整安装版客户端、TUN、Smart 内核和 Intel Mac 尚未完成端到端验收**。更多实现细节见 [下载测速说明](docs/download-speedtest.md)。
+
+## 隐私与凭据
+
+订阅链接、节点密码和配置文件可能包含访问凭据。不要提交到 Git、上传到 Issue，或放进未打码的截图。开发测试应使用受限临时文件，并在结束后删除。
+
+## 上游与许可证
+
+- 客户端基础：[Clash Party](https://github.com/mihomo-party-org/clash-party)
+- 代理内核：[Mihomo](https://github.com/MetaCubeX/mihomo)
+
+本项目是二次开发版本，不是上游官方发行版。保留上游版权声明，许可证见 [LICENSE](LICENSE)（GPL-3.0）；第三方依赖遵循各自许可证。

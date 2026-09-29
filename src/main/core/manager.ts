@@ -8,6 +8,7 @@ import os from 'os'
 import { existsSync, watch, type FSWatcher as NodeFSWatcher } from 'fs'
 import chokidar, { type FSWatcher as ChokidarWatcher } from 'chokidar'
 import { app, dialog, ipcMain } from 'electron'
+import { invalidateSpeedtest } from '../speedtest/runtime'
 import { mainWindow } from '../window'
 import {
   getAppConfig,
@@ -637,6 +638,7 @@ function setupCoreListeners(
   })
 
   proc.on('close', async (code, signal) => {
+    invalidateSpeedtest('内核已退出，测速结果已失效')
     managerLogger.info(`Core closed, code: ${code}, signal: ${signal}`)
     stopCoreProcessWatchdog(proc.pid)
 
@@ -887,6 +889,7 @@ function stopCoreProcessAndStreams(
   cancelStartup = true,
   keepWatchdog = false
 ): ChildProcess | null {
+  invalidateSpeedtest('内核停止或重启，测速结果已失效')
   if (cancelStartup) {
     cancelActiveStartup?.(new Error('Core startup was cancelled by a stop request'))
     cancelActiveStartup = null

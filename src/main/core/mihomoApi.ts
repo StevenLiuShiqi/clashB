@@ -2,6 +2,7 @@ import { createConnection } from 'net'
 import axios, { AxiosInstance } from 'axios'
 import WebSocket from 'ws'
 import { app } from 'electron'
+import { getTestEndpoints, invalidateSpeedtest } from '../speedtest/runtime'
 import { getAppConfig, getControledMihomoConfig, manageSmartOverride } from '../config'
 import { mainWindow } from '../window'
 import { tray } from '../resolve/tray'
@@ -208,6 +209,7 @@ export async function mihomoVersion(): Promise<IMihomoVersion> {
 }
 
 export const patchMihomoConfig = async (patch: Partial<IMihomoConfig>): Promise<void> => {
+  invalidateSpeedtest()
   const patchConfig = async (): Promise<void> => {
     const instance = await getAxios()
     await instance.patch('/configs', patch)
@@ -256,6 +258,13 @@ export const mihomoProxies = async (): Promise<IMihomoProxies> => {
   const proxies = (await instance.get('/proxies')) as IMihomoProxies
   if (!proxies.proxies['GLOBAL']) {
     throw new Error('GLOBAL proxy not found')
+  }
+  const internal = new Set(getTestEndpoints().map((endpoint) => endpoint.name))
+  if (internal.size) {
+    for (const name of internal) delete proxies.proxies[name]
+    for (const proxy of Object.values(proxies.proxies)) {
+      if ('all' in proxy) proxy.all = proxy.all.filter((name) => !internal.has(name))
+    }
   }
   return proxies
 }
@@ -359,6 +368,7 @@ export const mihomoProxyProviders = async (): Promise<IMihomoProxyProviders> => 
 }
 
 export const mihomoUpdateProxyProviders = async (name: string): Promise<void> => {
+  invalidateSpeedtest('订阅更新，测速结果已失效')
   const instance = await getAxios()
   return await instance.put(`/providers/proxies/${encodeURIComponent(name)}`)
 }

@@ -3,6 +3,7 @@ import vm from 'vm'
 import { existsSync, writeFileSync } from 'fs'
 import path from 'path'
 import { isIP } from 'net'
+import { injectSpeedtestConfig, invalidateSpeedtest } from '../speedtest/runtime'
 import {
   getControledMihomoConfig,
   getProfileConfig,
@@ -136,6 +137,8 @@ export async function generateProfile(
   pendingControledMihomoConfig?: Partial<IMihomoConfig>,
   options: GenerateProfileOptions = {}
 ): Promise<GenerateProfileResult> {
+  if (options.updateRuntimeConfig !== false && options.outputPath === undefined)
+    invalidateSpeedtest()
   const selectedAppConfig = await getAppConfig()
   if (selectedAppConfig.operationMode === 'simple') {
     const result = await compileSimpleRuntime()
@@ -145,6 +148,12 @@ export async function generateProfile(
     if (options.updateRuntimeConfig !== false) {
       runtimeConfigStr = result.yaml
       runtimeConfig = parse(result.yaml) as IMihomoConfig
+      if (options.outputPath === undefined) {
+        await atomicWriteFile(
+          mihomoWorkConfigPath('work'),
+          stringify(injectSpeedtestConfig(runtimeConfig))
+        )
+      }
     }
     return {
       profileId: 'simple-mode',
@@ -236,7 +245,10 @@ export async function generateProfile(
     delete partialProfile['external-ui-url']
   }
   const nextRuntimeConfigStr = stringify(profile)
-  const coreProfile = { ...profile }
+  const coreProfile =
+    options.outputPath === undefined && options.updateRuntimeConfig !== false
+      ? injectSpeedtestConfig({ ...profile })
+      : { ...profile }
   // 日志解析启动检测需要基础日志；预览和 Gist 保留用户的实际配置。
   if (['info', 'debug'].includes(coreProfile['log-level']) === false) {
     coreProfile['log-level'] = 'info'

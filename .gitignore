@@ -12,3 +12,8 @@ party.md
 CLAUDE.md
 agent.md
 tsconfig.node.tsbuildinfo
+
+.pnpm-store/
+
+# Local implementation notes
+/docs/superpowers/

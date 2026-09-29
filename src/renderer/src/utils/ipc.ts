@@ -1,4 +1,5 @@
 import { TitleBarOverlayOptions } from 'electron'
+import type { SpeedtestSnapshot, SpeedtestStart } from '../../../shared/speedtest'
 import type {
   TrafficUsageAggregate,
   TrafficUsageBreakdownQuery,
@@ -21,6 +22,11 @@ async function invoke<T>(channel: string, ...args: unknown[]): Promise<T> {
 
 // IPC API 类型定义
 interface IpcApi {
+  speedtestStart: (input: SpeedtestStart) => Promise<SpeedtestSnapshot>
+  speedtestCancel: () => Promise<void>
+  speedtestSnapshot: () => Promise<SpeedtestSnapshot | null>
+  speedtestSelectFastest: (id: string) => Promise<string>
+  speedtestTargets: (group: string) => Promise<string[]>
   // Mihomo API
   mihomoVersion: () => Promise<IMihomoVersion>
   mihomoCloseConnection: (id: string) => Promise<void>
@@ -269,6 +275,11 @@ const ipc = new Proxy({} as IpcApi, {
 
 // 导出所有 IPC 方法
 export const {
+  speedtestStart,
+  speedtestCancel,
+  speedtestSnapshot,
+  speedtestSelectFastest,
+  speedtestTargets,
   // Mihomo API
   mihomoVersion,
   mihomoCloseConnection,

@@ -1,3 +1,4 @@
+import SpeedtestPanel from '@renderer/components/proxies/speedtest-panel'
 import {
   Avatar,
   Button,
@@ -15,6 +16,7 @@ import {
 import BasePage from '@renderer/components/base/base-page'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import {
+  speedtestSnapshot,
   getImageDataURL,
   mihomoChangeProxy,
   mihomoCloseAllConnections,
@@ -180,6 +182,7 @@ const Proxies: React.FC = () => {
   const { groups: groupData, mutate, showHidden, setShowHidden } = useGroups()
   const { appConfig, patchAppConfig } = useAppConfig()
   const simpleMode = appConfig?.operationMode === 'simple'
+  const [speedtestGroup, setSpeedtestGroup] = useState<string>()
   const [editMode, setEditMode] = useState(false)
   const editing = simpleMode && editMode
   const [editingGroup, setEditingGroup] = useState<string>()
@@ -723,6 +726,14 @@ const Proxies: React.FC = () => {
                           <FaLocationCrosshairs className="text-lg text-foreground-500" />
                         </Button>
                         <Button
+                          title="实际下载测速（单节点或本组全部）"
+                          variant="light"
+                          size="sm"
+                          onPress={() => setSpeedtestGroup(groups[index].name)}
+                        >
+                          下载测速
+                        </Button>
+                        <Button
                           title={t('proxies.delay.test')}
                           variant="light"
                           isLoading={(delaying[index]?.size ?? 0) > 0}
@@ -833,6 +844,22 @@ const Proxies: React.FC = () => {
       title={t('proxies.title')}
       header={
         <>
+          <Button
+            size="sm"
+            variant="light"
+            className="app-nodrag"
+            onPress={() => {
+              void speedtestSnapshot()
+                .then((state) => {
+                  const name = state?.group || groups[0]?.name
+                  if (name) setSpeedtestGroup(name)
+                  else toast.error('当前没有可测试的代理组，请先导入订阅并启用规则或全局模式')
+                })
+                .catch((error) => toast.error(String(error)))
+            }}
+          >
+            下载测速
+          </Button>
           <Dropdown placement="bottom-end">
             <DropdownTrigger>
               <Button
@@ -1079,6 +1106,15 @@ const Proxies: React.FC = () => {
             itemContent={renderItemContent}
           />
         </div>
+      )}
+      {speedtestGroup && (
+        <SpeedtestPanel
+          group={speedtestGroup}
+          onClose={() => setSpeedtestGroup(undefined)}
+          onSelected={() => {
+            void mutate()
+          }}
+        />
       )}
     </BasePage>
   )

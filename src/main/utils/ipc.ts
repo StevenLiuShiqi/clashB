@@ -4,6 +4,13 @@ import { readFile } from 'fs/promises'
 import { app, ipcMain } from 'electron'
 import i18next from 'i18next'
 import {
+  speedtestStart,
+  speedtestCancel,
+  speedtestSnapshot,
+  speedtestSelectFastest,
+  speedtestTargets
+} from '../speedtest/service'
+import {
   mihomoChangeProxy,
   mihomoCloseAllConnections,
   mihomoCloseConnection,
@@ -257,6 +264,11 @@ async function setTitleBarOverlay(overlay: Electron.TitleBarOverlayOptions): Pro
 }
 
 const asyncHandlers: Record<string, AsyncFn> = {
+  speedtestStart,
+  speedtestCancel,
+  speedtestSnapshot,
+  speedtestSelectFastest,
+  speedtestTargets,
   // Mihomo API
   mihomoVersion,
   mihomoCloseConnection,

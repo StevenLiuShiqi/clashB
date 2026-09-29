@@ -3,6 +3,11 @@ import { contextBridge, ipcRenderer, webUtils } from 'electron'
 // 允许的 invoke channels 白名单
 const validInvokeChannels = [
   // Mihomo API
+  'speedtestStart',
+  'speedtestCancel',
+  'speedtestSnapshot',
+  'speedtestSelectFastest',
+  'speedtestTargets',
   'mihomoVersion',
   'mihomoCloseConnection',
   'mihomoCloseAllConnections',
@@ -193,6 +198,7 @@ const validInvokeChannels = [
 
 // 允许的 on/removeListener channels 白名单
 const validListenChannels = [
+  'speedtestUpdated',
   'mihomoLogs',
   'mihomoConnections',
   'mihomoTraffic',
