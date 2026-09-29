@@ -1,4 +1,3 @@
-import SpeedtestPanel from '@renderer/components/proxies/speedtest-panel'
 import {
   Avatar,
   Button,
@@ -16,7 +15,9 @@ import {
 import BasePage from '@renderer/components/base/base-page'
 import { useAppConfig } from '@renderer/hooks/use-app-config'
 import {
+  speedtestCancel,
   speedtestSnapshot,
+  speedtestStart,
   getImageDataURL,
   mihomoChangeProxy,
   mihomoCloseAllConnections,
@@ -71,6 +72,11 @@ import DeleteResourceButton from '@renderer/components/simple/delete-resource-bu
 import SortableGroup from '@renderer/components/proxies/sortable-group'
 import { toast } from '@renderer/components/base/toast'
 import type { SimpleObject } from '../../../shared/simple-config'
+import {
+  DEFAULT_SPEEDTEST_URL,
+  type SpeedtestResult,
+  type SpeedtestSnapshot
+} from '../../../shared/speedtest'
 
 const GROUP_EXPAND_STATE_KEY = 'proxy_group_expand_state'
 const EMPTY_GROUPS: IMihomoMixedGroup[] = []
@@ -182,7 +188,38 @@ const Proxies: React.FC = () => {
   const { groups: groupData, mutate, showHidden, setShowHidden } = useGroups()
   const { appConfig, patchAppConfig } = useAppConfig()
   const simpleMode = appConfig?.operationMode === 'simple'
-  const [speedtestGroup, setSpeedtestGroup] = useState<string>()
+  const [speedtest, setSpeedtest] = useState<SpeedtestSnapshot | null>(null)
+  useEffect(() => {
+    const unsubscribe = window.electron.ipcRenderer.on('speedtestUpdated', (_event, value) => {
+      setSpeedtest(value as SpeedtestSnapshot)
+    })
+    void speedtestSnapshot()
+      .then(setSpeedtest)
+      .catch(() => {})
+    return unsubscribe
+  }, [])
+
+  const speedtestResults = useMemo(() => {
+    const results = new Map<string, SpeedtestResult>()
+    if (speedtest) speedtest.results.forEach((result) => results.set(result.node, result))
+    return results
+  }, [speedtest])
+
+  const onGroupSpeedtest = useCallback(
+    async (group: string): Promise<void> => {
+      try {
+        if (speedtest && speedtest.phase !== 'finished') {
+          if (speedtest.group === group) await speedtestCancel()
+          return
+        }
+        await speedtestStart({ group, url: DEFAULT_SPEEDTEST_URL, mode: 'quick' })
+      } catch (error) {
+        toast.error(String(error))
+      }
+    },
+    [speedtest]
+  )
+
   const [editMode, setEditMode] = useState(false)
   const editing = simpleMode && editMode
   const [editingGroup, setEditingGroup] = useState<string>()
@@ -726,12 +763,19 @@ const Proxies: React.FC = () => {
                           <FaLocationCrosshairs className="text-lg text-foreground-500" />
                         </Button>
                         <Button
-                          title="实际下载测速（单节点或本组全部）"
+                          title="点击后立即开始六路下载检查；再次点击可取消"
                           variant="light"
                           size="sm"
-                          onPress={() => setSpeedtestGroup(groups[index].name)}
+                          isDisabled={Boolean(
+                            speedtest &&
+                            speedtest.phase !== 'finished' &&
+                            speedtest.group !== groups[index].name
+                          )}
+                          onPress={() => void onGroupSpeedtest(groups[index].name)}
                         >
-                          下载测速
+                          {speedtest?.group === groups[index].name && speedtest.phase !== 'finished'
+                            ? `停止测速 ${speedtest.results.filter((result) => result.status !== 'pending' && result.status !== 'running').length}/${speedtest.results.length}`
+                            : '下载测速'}
                         </Button>
                         <Button
                           title={t('proxies.delay.test')}
@@ -776,6 +820,8 @@ const Proxies: React.FC = () => {
       cols,
       virtuosoRef,
       onGroupDelay,
+      onGroupSpeedtest,
+      speedtest,
       editing,
       openGroupEditor,
       configuredGroups,
@@ -817,6 +863,11 @@ const Proxies: React.FC = () => {
                   delaying[groupIndex]?.has(allProxies[groupIndex][innerIndex * cols + i].name) ??
                   false
                 }
+                speedtestResult={
+                  speedtest?.group === groups[groupIndex].name
+                    ? speedtestResults.get(allProxies[groupIndex][innerIndex * cols + i].name)
+                    : undefined
+                }
               />
             )
           })}
@@ -835,7 +886,9 @@ const Proxies: React.FC = () => {
       delaying,
       mutate,
       onProxyDelay,
-      onChangeProxy
+      onChangeProxy,
+      speedtest,
+      speedtestResults
     ]
   )
 
@@ -849,16 +902,12 @@ const Proxies: React.FC = () => {
             variant="light"
             className="app-nodrag"
             onPress={() => {
-              void speedtestSnapshot()
-                .then((state) => {
-                  const name = state?.group || groups[0]?.name
-                  if (name) setSpeedtestGroup(name)
-                  else toast.error('当前没有可测试的代理组，请先导入订阅并启用规则或全局模式')
-                })
-                .catch((error) => toast.error(String(error)))
+              const name = speedtest?.group || groups[0]?.name
+              if (name) void onGroupSpeedtest(name)
+              else toast.error('当前没有可测试的代理组，请先导入订阅并启用规则或全局模式')
             }}
           >
-            下载测速
+            {speedtest?.phase === 'running' ? '停止测速' : '下载测速'}
           </Button>
           <Dropdown placement="bottom-end">
             <DropdownTrigger>
@@ -1106,15 +1155,6 @@ const Proxies: React.FC = () => {
             itemContent={renderItemContent}
           />
         </div>
-      )}
-      {speedtestGroup && (
-        <SpeedtestPanel
-          group={speedtestGroup}
-          onClose={() => setSpeedtestGroup(undefined)}
-          onSelected={() => {
-            void mutate()
-          }}
-        />
       )}
     </BasePage>
   )

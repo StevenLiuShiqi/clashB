@@ -4,6 +4,7 @@ import React, { useMemo, useState, useCallback } from 'react'
 import { FaMapPin } from 'react-icons/fa6'
 import { useTranslation } from 'react-i18next'
 import { KeyedMutator } from 'swr'
+import type { SpeedtestResult } from '../../../../shared/speedtest'
 
 interface Props {
   mutateProxies: KeyedMutator<IMihomoMixedGroup[]>
@@ -14,6 +15,7 @@ interface Props {
   onSelect: (group: string, proxy: string) => void
   selected: boolean
   isGroupTesting?: boolean
+  speedtestResult?: SpeedtestResult
 }
 
 function delayColor(delay: number): 'primary' | 'success' | 'warning' | 'danger' {
@@ -33,7 +35,8 @@ const ProxyItemBase: React.FC<Props> = (props) => {
     selected,
     onSelect,
     onProxyDelay,
-    isGroupTesting = false
+    isGroupTesting = false,
+    speedtestResult
   } = props
 
   const delay = useMemo(() => {
@@ -46,6 +49,19 @@ const ProxyItemBase: React.FC<Props> = (props) => {
   const [loading, setLoading] = useState(false)
 
   const isLoading = loading || isGroupTesting
+
+  const speedtestText = useMemo(() => {
+    if (!speedtestResult) return null
+    if (speedtestResult.status === 'pending') return '待测'
+    if (speedtestResult.status === 'running') return '测速中…'
+    if (speedtestResult.status === 'success') return '≥12.6 Mbps'
+    if (speedtestResult.bytesPerSecond > 0) {
+      return `${((speedtestResult.bytesPerSecond * 8) / 1000000).toFixed(1)} Mbps`
+    }
+    if (speedtestResult.status === 'failed') return '测速失败'
+    if (speedtestResult.status === 'cancelled') return '已取消'
+    return '未达标'
+  }, [speedtestResult])
 
   const delayText = useMemo(() => {
     if (delay === -1) return t('proxies.delay.test')
@@ -130,7 +146,10 @@ const ProxyItemBase: React.FC<Props> = (props) => {
                 variant="light"
                 className="h-full text-sm ml-auto -mt-0.5 px-2 relative w-min whitespace-nowrap"
               >
-                <div className="w-full h-full flex items-center justify-end">{delayText}</div>
+                <div className="w-full h-full flex items-center justify-end gap-1">
+                  <span>{delayText}</span>
+                  {speedtestText && <span className="text-xs text-primary">{speedtestText}</span>}
+                </div>
               </Button>
             </div>
           </div>
@@ -166,7 +185,10 @@ const ProxyItemBase: React.FC<Props> = (props) => {
                 variant="light"
                 className="h-full text-sm px-2 relative w-min whitespace-nowrap"
               >
-                <div className="w-full h-full flex items-center justify-end">{delayText}</div>
+                <div className="w-full h-full flex items-center justify-end gap-1">
+                  <span>{delayText}</span>
+                  {speedtestText && <span className="text-xs text-primary">{speedtestText}</span>}
+                </div>
               </Button>
             </div>
           </div>
@@ -184,7 +206,8 @@ const ProxyItem = React.memo(ProxyItemBase, (prevProps, nextProps) => {
     prevProps.selected === nextProps.selected &&
     prevProps.proxyDisplayMode === nextProps.proxyDisplayMode &&
     prevProps.group.fixed === nextProps.group.fixed &&
-    prevProps.isGroupTesting === nextProps.isGroupTesting
+    prevProps.isGroupTesting === nextProps.isGroupTesting &&
+    prevProps.speedtestResult === nextProps.speedtestResult
   )
 })
 
