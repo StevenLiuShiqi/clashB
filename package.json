@@ -1,11 +1,11 @@
 {
-  "name": "mihomo-party",
-  "version": "2.0.3",
-  "description": "Clash Party",
+  "name": "clashb",
+  "version": "0.1.0",
+  "description": "A macOS-first Mihomo proxy client with real download speed checks.",
   "type": "module",
   "main": "./out/main/index.js",
-  "author": "mihomo-party-org",
-  "homepage": "https://clashparty.org",
+  "author": "multica-ai",
+  "homepage": "https://github.com/StevenLiuShiqi/clashB",
   "scripts": {
     "test": "vitest run",
     "test:watch": "vitest",

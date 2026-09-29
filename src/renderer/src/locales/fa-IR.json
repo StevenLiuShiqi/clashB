@@ -169,7 +169,7 @@
   "mihomo.gist.copyUrl": "کپی آدرس Gist",
   "mihomo.gist.token": "توکن GitHub",
   "mihomo.gist.ageEncrypt": "رمزنگاری Gist با Age",
-  "mihomo.gist.ageEncryptTooltip": "در صورت فعال بودن، Clash Party پیکربندی زمان اجرا را به صورت فایل age armor در Gist بارگذاری می‌کند. کلاینتی که از آدرس raw گیت استفاده می‌کند برای رمزگشایی به کلید خصوصی خروجی‌گرفته‌شده نیاز دارد.",
+  "mihomo.gist.ageEncryptTooltip": "در صورت فعال بودن، clashB پیکربندی زمان اجرا را به صورت فایل age armor در Gist بارگذاری می‌کند. کلاینتی که از آدرس raw گیت استفاده می‌کند برای رمزگشایی به کلید خصوصی خروجی‌گرفته‌شده نیاز دارد.",
   "mihomo.gist.ageRecipient": "گیرنده Gist Age (کلید عمومی)",
   "mihomo.gist.ageRecipientPlaceholder": "age1...",
   "mihomo.gist.ageKeys": "کلیدهای Gist Age",

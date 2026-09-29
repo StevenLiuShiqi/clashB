@@ -47,7 +47,7 @@ beforeEach(() => {
   appName = 'mihomo-party'
   Object.assign(paths, {
     appData: APP_DATA,
-    userData: path.join(APP_DATA, 'mihomo-party'),
+    userData: path.join(APP_DATA, 'clashb'),
     home: HOME,
     exe: EXE
   })
@@ -63,8 +63,8 @@ describe('configureAppPaths', () => {
     const { configureAppPaths } = await import('./dirs')
     configureAppPaths()
 
-    expect(setName).toHaveBeenCalledWith('mihomo-party-dev')
-    expect(paths.userData).toBe(path.join(APP_DATA, 'mihomo-party-dev'))
+    expect(setName).toHaveBeenCalledWith('clashb-dev')
+    expect(paths.userData).toBe(path.join(APP_DATA, 'clashb-dev'))
   })
 
   it('leaves packaged stable and dev-release builds on production paths', async () => {
@@ -74,7 +74,7 @@ describe('configureAppPaths', () => {
 
     expect(setName).not.toHaveBeenCalled()
     expect(setPath).not.toHaveBeenCalled()
-    expect(paths.userData).toBe(path.join(APP_DATA, 'mihomo-party'))
+    expect(paths.userData).toBe(path.join(APP_DATA, 'clashb'))
   })
 
   it('keeps portable userData precedence over local development isolation', async () => {
@@ -82,7 +82,7 @@ describe('configureAppPaths', () => {
     const { configureAppPaths } = await import('./dirs')
     configureAppPaths()
 
-    expect(setName).toHaveBeenCalledWith('mihomo-party-dev')
+    expect(setName).toHaveBeenCalledWith('clashb-dev')
     expect(paths.userData).toBe(path.join(EXE_DIR, 'data'))
     expect(setPath).toHaveBeenLastCalledWith('userData', path.join(EXE_DIR, 'data'))
   })

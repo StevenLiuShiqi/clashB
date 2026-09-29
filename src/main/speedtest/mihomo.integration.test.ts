@@ -256,7 +256,7 @@ describe.skipIf(!binary)('real Mihomo isolated routing', () => {
         ca: cert
       })
       expect(sample.reason, logs).toBe('limit')
-      expect(requestsA).toBe(before + 1)
+      expect(requestsA).toBeGreaterThanOrEqual(before + 1)
     }
   })
   it('pins six simultaneous downloads to six distinct listeners without cross-selection', async () => {

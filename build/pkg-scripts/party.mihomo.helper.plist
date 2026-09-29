@@ -6,7 +6,7 @@
     <string>party.mihomo.helper</string>
     <key>AssociatedBundleIdentifiers</key>
     <array>
-        <string>party.mihomo.app</string>
+        <string>com.multica.clashb</string>
     </array>
     <key>KeepAlive</key>
     <true/>

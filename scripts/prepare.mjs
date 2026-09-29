@@ -467,11 +467,14 @@ const resolveSubstore = () =>
     downloadURL:
       'https://github.com/sub-store-org/Sub-Store/releases/latest/download/sub-store.bundle.js'
   })
-const resolveHelper = () =>
-  resolveResource({
+const resolveHelper = () => {
+  const legacyRenamedPath = path.join(cwd, 'extra', 'files', 'clashb.helper')
+  if (fs.existsSync(legacyRenamedPath)) fs.rmSync(legacyRenamedPath)
+  return resolveResource({
     file: 'party.mihomo.helper',
     downloadURL: `https://github.com/mihomo-party-org/mihomo-party-helper/releases/download/${arch}/party.mihomo.helper`
   })
+}
 const resolveSubstoreFrontend = async () => {
   const tempDir = path.join(TEMP_DIR, 'substore-frontend')
   const tempZip = path.join(tempDir, 'dist.zip')
