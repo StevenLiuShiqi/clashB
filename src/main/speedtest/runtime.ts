@@ -60,22 +60,48 @@ export async function enableTestEndpoint(slot = 0): Promise<TestEndpoint> {
 export function injectJmsDerivedGroups<T extends object>(config: T): T {
   const source = config as Record<string, unknown>
   const groups = Array.isArray(source['proxy-groups']) ? source['proxy-groups'] : []
-  const jms = groups.find(
-    (group) =>
-      group && typeof group === 'object' && (group as Record<string, unknown>).name === 'JMS'
-  ) as Record<string, unknown> | undefined
-  if (!jms || jms.type !== 'select' || !Array.isArray(jms.proxies)) return config
-  const jmsProxies = [...jms.proxies]
-  const existingPing = groups.find(
-    (group) =>
+  const groupByName = new Map<string, Record<string, unknown>>()
+  groups.forEach((group) => {
+    if (
       group &&
       typeof group === 'object' &&
-      (group as Record<string, unknown>).type === 'url-test' &&
-      Array.isArray((group as Record<string, unknown>).proxies) &&
-      ((group as Record<string, unknown>).proxies as unknown[]).every((name) =>
-        jmsProxies.includes(name)
+      typeof (group as Record<string, unknown>).name === 'string'
+    ) {
+      groupByName.set(
+        String((group as Record<string, unknown>).name),
+        group as Record<string, unknown>
       )
-  ) as Record<string, unknown> | undefined
+    }
+  })
+  const jms = groupByName.get('JMS')
+  if (!jms || jms.type !== 'select' || !Array.isArray(jms.proxies)) return config
+
+  const leafNodes: string[] = []
+  const visited = new Set<string>()
+  const expand = (name: string): void => {
+    if (visited.has(name)) return
+    visited.add(name)
+    const nested = groupByName.get(name)
+    if (nested && Array.isArray(nested.proxies)) {
+      nested.proxies.forEach((child) => {
+        if (typeof child === 'string') expand(child)
+      })
+      return
+    }
+    if (!['DIRECT', 'REJECT', 'PASS', 'DNS'].includes(name.toUpperCase())) leafNodes.push(name)
+  }
+  jms.proxies.forEach((name) => {
+    if (typeof name === 'string') expand(name)
+  })
+  const jmsProxies = [...new Set(leafNodes)]
+  if (jmsProxies.length === 0) return config
+
+  const existingPing =
+    groupByName.get('JMS Auto') ??
+    (groups.find(
+      (group) =>
+        group && typeof group === 'object' && (group as Record<string, unknown>).type === 'url-test'
+    ) as Record<string, unknown> | undefined)
   const ping = {
     ...(existingPing ?? {}),
     name: JMS_AUTO_PING_GROUP,
@@ -83,11 +109,24 @@ export function injectJmsDerivedGroups<T extends object>(config: T): T {
     proxies: jmsProxies
   }
   const bandwidth = { name: JMS_AUTO_BANDWIDTH_GROUP, type: 'select', proxies: jmsProxies }
-  const filtered = groups.filter((group) => {
-    if (!group || typeof group !== 'object') return true
-    const name = (group as Record<string, unknown>).name
-    return name !== JMS_AUTO_PING_GROUP && name !== JMS_AUTO_BANDWIDTH_GROUP && name !== 'JMS Auto'
-  })
+  const filtered = groups
+    .filter((group) => {
+      if (!group || typeof group !== 'object') return true
+      const name = (group as Record<string, unknown>).name
+      return (
+        name !== JMS_AUTO_PING_GROUP && name !== JMS_AUTO_BANDWIDTH_GROUP && name !== 'JMS Auto'
+      )
+    })
+    .map((group) => {
+      if (!group || typeof group !== 'object') return group
+      const next = { ...(group as Record<string, unknown>) }
+      if (Array.isArray(next.proxies)) {
+        next.proxies = next.proxies.map((name) =>
+          name === 'JMS Auto' ? JMS_AUTO_PING_GROUP : name
+        )
+      }
+      return next
+    })
   return { ...config, 'proxy-groups': [...filtered, ping, bandwidth] }
 }
 

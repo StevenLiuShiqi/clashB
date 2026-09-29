@@ -32,3 +32,22 @@ describe('JMS runtime groups', () => {
     expect(injectJmsDerivedGroups(wrongType)).toBe(wrongType)
   })
 })
+
+it('migrates a nested legacy JMS Auto group and rewrites all references', () => {
+  const result = injectJmsDerivedGroups({
+    'proxy-groups': [
+      { name: 'JMS', type: 'select', proxies: ['JMS Auto', 'A', 'B'] },
+      { name: 'JMS Auto', type: 'url-test', proxies: ['A', 'B'], url: 'https://example.test' },
+      { name: 'JMS Auto Bandwidth', type: 'select', proxies: ['JMS Auto'] }
+    ]
+  })
+  const groups = result['proxy-groups']
+  expect(groups).toEqual(
+    expect.arrayContaining([
+      { name: 'JMS', type: 'select', proxies: ['JMS Auto Ping', 'A', 'B'] },
+      expect.objectContaining({ name: 'JMS Auto Ping', type: 'url-test', proxies: ['A', 'B'] }),
+      { name: 'JMS Auto Bandwidth', type: 'select', proxies: ['A', 'B'] }
+    ])
+  )
+  expect(groups.some((group) => group.name === 'JMS Auto')).toBe(false)
+})
