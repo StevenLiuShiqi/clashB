@@ -368,6 +368,7 @@ interface IAppConfig {
   customTheme?: string
   autoCheckUpdate: boolean
   autoUpdateProfileOnStart: boolean
+  jmsBandwidthCheckIntervalMinutes: 0 | 5 | 10 | 30 | 60
   silentUpdate: boolean
   githubProxy?: string
   silentStart: boolean

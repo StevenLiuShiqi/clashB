@@ -1,6 +1,7 @@
 import { randomBytes, randomUUID } from 'crypto'
 import { createServer } from 'net'
 import { SPEEDTEST_LIMITS } from '../../shared/speedtest'
+import { JMS_AUTO_BANDWIDTH_GROUP, JMS_AUTO_PING_GROUP } from '../../shared/jms-speedtest'
 
 export interface TestEndpoint {
   name: string
@@ -54,6 +55,40 @@ export async function enableTestEndpoint(slot = 0): Promise<TestEndpoint> {
   }
   endpoints[slot] = endpoint
   return endpoint
+}
+
+export function injectJmsDerivedGroups<T extends object>(config: T): T {
+  const source = config as Record<string, unknown>
+  const groups = Array.isArray(source['proxy-groups']) ? source['proxy-groups'] : []
+  const jms = groups.find(
+    (group) =>
+      group && typeof group === 'object' && (group as Record<string, unknown>).name === 'JMS'
+  ) as Record<string, unknown> | undefined
+  if (!jms || jms.type !== 'select' || !Array.isArray(jms.proxies)) return config
+  const jmsProxies = [...jms.proxies]
+  const existingPing = groups.find(
+    (group) =>
+      group &&
+      typeof group === 'object' &&
+      (group as Record<string, unknown>).type === 'url-test' &&
+      Array.isArray((group as Record<string, unknown>).proxies) &&
+      ((group as Record<string, unknown>).proxies as unknown[]).every((name) =>
+        jmsProxies.includes(name)
+      )
+  ) as Record<string, unknown> | undefined
+  const ping = {
+    ...(existingPing ?? {}),
+    name: JMS_AUTO_PING_GROUP,
+    type: 'url-test',
+    proxies: jmsProxies
+  }
+  const bandwidth = { name: JMS_AUTO_BANDWIDTH_GROUP, type: 'select', proxies: jmsProxies }
+  const filtered = groups.filter((group) => {
+    if (!group || typeof group !== 'object') return true
+    const name = (group as Record<string, unknown>).name
+    return name !== JMS_AUTO_PING_GROUP && name !== JMS_AUTO_BANDWIDTH_GROUP && name !== 'JMS Auto'
+  })
+  return { ...config, 'proxy-groups': [...filtered, ping, bandwidth] }
 }
 
 // Inject into the core-only copy. Never persist credentials or this group to a subscription/export.

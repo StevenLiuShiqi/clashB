@@ -199,6 +199,8 @@ const validInvokeChannels = [
 // 允许的 on/removeListener channels 白名单
 const validListenChannels = [
   'speedtestUpdated',
+  'jmsMetricsUpdated',
+  'subscriptionUpdateStatus',
   'mihomoLogs',
   'mihomoConnections',
   'mihomoTraffic',

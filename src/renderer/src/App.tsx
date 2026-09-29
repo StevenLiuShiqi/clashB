@@ -143,6 +143,16 @@ const App: React.FC = () => {
   } = appConfig || {}
   useTrafficLogger(enableTrafficLogger)
   useDnsOverrideAutoDisabledNotice()
+  useEffect(() => {
+    return window.electron.ipcRenderer.on('subscriptionUpdateStatus', (_event, value) => {
+      const status = value as { likelyExpired?: boolean; message?: string }
+      toast.warning(
+        status.likelyExpired
+          ? '订阅可能已过期或需要重新授权'
+          : `订阅更新失败：${status.message || '未知错误'}`
+      )
+    })
+  }, [])
   const narrowWidth = platform === 'darwin' ? 70 : 60
   const [siderWidthValue, setSiderWidthValue] = useState(siderWidth)
   const siderWidthValueRef = useRef(siderWidthValue)

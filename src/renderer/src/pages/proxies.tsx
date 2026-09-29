@@ -73,6 +73,11 @@ import SortableGroup from '@renderer/components/proxies/sortable-group'
 import { toast } from '@renderer/components/base/toast'
 import type { SimpleObject } from '../../../shared/simple-config'
 import {
+  JMS_AUTO_BANDWIDTH_GROUP,
+  JMS_AUTO_PING_GROUP,
+  type JmsMetricsSnapshot
+} from '../../../shared/jms-speedtest'
+import {
   DEFAULT_SPEEDTEST_URL,
   type SpeedtestResult,
   type SpeedtestSnapshot
@@ -189,21 +194,62 @@ const Proxies: React.FC = () => {
   const { appConfig, patchAppConfig } = useAppConfig()
   const simpleMode = appConfig?.operationMode === 'simple'
   const [speedtest, setSpeedtest] = useState<SpeedtestSnapshot | null>(null)
+  const [jmsMetrics, setJmsMetrics] = useState<JmsMetricsSnapshot | null>(null)
   useEffect(() => {
     const unsubscribe = window.electron.ipcRenderer.on('speedtestUpdated', (_event, value) => {
-      setSpeedtest(value as SpeedtestSnapshot)
+      const snapshot = value as SpeedtestSnapshot
+      setSpeedtest(snapshot)
+      if (snapshot.group === 'JMS') {
+        setJmsMetrics({
+          sourceGroup: 'JMS',
+          updatedAt: Date.now(),
+          metrics: snapshot.results.map((result) => ({
+            node: result.node,
+            ping: 0,
+            bandwidthMbps: (result.bytesPerSecond * 8) / 1_000_000,
+            status: ['success', 'insufficient', 'failed', 'cancelled'].includes(result.status)
+              ? (result.status as 'success' | 'insufficient' | 'failed' | 'cancelled')
+              : 'failed',
+            testedAt: result.testedAt ?? Date.now()
+          }))
+        })
+      }
+    })
+    const unsubscribeJms = window.electron.ipcRenderer.on('jmsMetricsUpdated', (_event, value) => {
+      setJmsMetrics(value as JmsMetricsSnapshot)
     })
     void speedtestSnapshot()
       .then(setSpeedtest)
       .catch(() => {})
-    return unsubscribe
+    return () => {
+      unsubscribe()
+      unsubscribeJms()
+    }
   }, [])
+
+  const jmsPingResults = useMemo(
+    () => new Map((jmsMetrics?.metrics ?? []).map((metric) => [metric.node, metric.ping])),
+    [jmsMetrics]
+  )
 
   const speedtestResults = useMemo(() => {
     const results = new Map<string, SpeedtestResult>()
-    if (speedtest) speedtest.results.forEach((result) => results.set(result.node, result))
+    if (jmsMetrics) {
+      jmsMetrics.metrics.forEach((metric) => {
+        results.set(metric.node, {
+          node: metric.node,
+          status: metric.status,
+          bytes: 0,
+          bodyMs: 0,
+          bytesPerSecond: (metric.bandwidthMbps * 1_000_000) / 8,
+          testedAt: metric.testedAt
+        })
+      })
+    }
+    if (speedtest && speedtest.group === 'JMS')
+      speedtest.results.forEach((result) => results.set(result.node, result))
     return results
-  }, [speedtest])
+  }, [jmsMetrics, speedtest])
 
   const onGroupSpeedtest = useCallback(
     async (group: string): Promise<void> => {
@@ -863,8 +909,17 @@ const Proxies: React.FC = () => {
                   delaying[groupIndex]?.has(allProxies[groupIndex][innerIndex * cols + i].name) ??
                   false
                 }
+                speedtestPing={
+                  [JMS_AUTO_BANDWIDTH_GROUP, JMS_AUTO_PING_GROUP, 'JMS'].includes(
+                    groups[groupIndex].name
+                  )
+                    ? jmsPingResults.get(allProxies[groupIndex][innerIndex * cols + i].name)
+                    : undefined
+                }
                 speedtestResult={
-                  speedtest?.group === groups[groupIndex].name
+                  [JMS_AUTO_BANDWIDTH_GROUP, JMS_AUTO_PING_GROUP, 'JMS'].includes(
+                    groups[groupIndex].name
+                  )
                     ? speedtestResults.get(allProxies[groupIndex][innerIndex * cols + i].name)
                     : undefined
                 }
@@ -887,8 +942,8 @@ const Proxies: React.FC = () => {
       mutate,
       onProxyDelay,
       onChangeProxy,
-      speedtest,
-      speedtestResults
+      speedtestResults,
+      jmsPingResults
     ]
   )
 

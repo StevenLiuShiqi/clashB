@@ -100,6 +100,7 @@ const GeneralConfig: React.FC = () => {
     customTheme = 'default.css',
     envType = [platform === 'win32' ? 'powershell' : 'bash'],
     autoUpdateProfileOnStart = true,
+    jmsBandwidthCheckIntervalMinutes = 5,
     githubProxy = 'auto',
     appTheme = 'system',
     language = 'zh-CN',
@@ -352,6 +353,27 @@ const GeneralConfig: React.FC = () => {
               patchAppConfig({ autoUpdateProfileOnStart: v })
             }}
           />
+        </SettingItem>
+        <SettingItem title="JMS 带宽自动测速" divider>
+          <Select
+            classNames={{ trigger: 'data-[hover=true]:bg-default-200' }}
+            className="w-50"
+            size="sm"
+            selectedKeys={[String(jmsBandwidthCheckIntervalMinutes)]}
+            aria-label="JMS 带宽自动测速"
+            onSelectionChange={(keys) => {
+              const value = Number(Array.from(keys)[0])
+              if ([0, 5, 10, 30, 60].includes(value)) {
+                patchAppConfig({ jmsBandwidthCheckIntervalMinutes: value as 0 | 5 | 10 | 30 | 60 })
+              }
+            }}
+          >
+            <SelectItem key="0">关闭</SelectItem>
+            <SelectItem key="5">每 5 分钟</SelectItem>
+            <SelectItem key="10">每 10 分钟</SelectItem>
+            <SelectItem key="30">每 30 分钟</SelectItem>
+            <SelectItem key="60">每 1 小时</SelectItem>
+          </Select>
         </SettingItem>
         <SettingItem title={t('settings.githubProxy')} divider>
           <Select

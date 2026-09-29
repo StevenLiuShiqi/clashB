@@ -3,7 +3,11 @@ import vm from 'vm'
 import { existsSync, writeFileSync } from 'fs'
 import path from 'path'
 import { isIP } from 'net'
-import { injectSpeedtestConfig, invalidateSpeedtest } from '../speedtest/runtime'
+import {
+  injectJmsDerivedGroups,
+  injectSpeedtestConfig,
+  invalidateSpeedtest
+} from '../speedtest/runtime'
 import {
   getControledMihomoConfig,
   getProfileConfig,
@@ -151,7 +155,7 @@ export async function generateProfile(
       if (options.outputPath === undefined) {
         await atomicWriteFile(
           mihomoWorkConfigPath('work'),
-          stringify(injectSpeedtestConfig(runtimeConfig))
+          stringify(injectSpeedtestConfig(injectJmsDerivedGroups(runtimeConfig)))
         )
       }
     }
@@ -247,7 +251,7 @@ export async function generateProfile(
   const nextRuntimeConfigStr = stringify(profile)
   const coreProfile =
     options.outputPath === undefined && options.updateRuntimeConfig !== false
-      ? injectSpeedtestConfig({ ...profile })
+      ? injectSpeedtestConfig(injectJmsDerivedGroups({ ...profile }))
       : { ...profile }
   // 日志解析启动检测需要基础日志；预览和 Gist 保留用户的实际配置。
   if (['info', 'debug'].includes(coreProfile['log-level']) === false) {

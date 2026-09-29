@@ -16,6 +16,7 @@ interface Props {
   selected: boolean
   isGroupTesting?: boolean
   speedtestResult?: SpeedtestResult
+  speedtestPing?: number
 }
 
 function delayColor(delay: number): 'primary' | 'success' | 'warning' | 'danger' {
@@ -36,15 +37,17 @@ const ProxyItemBase: React.FC<Props> = (props) => {
     onSelect,
     onProxyDelay,
     isGroupTesting = false,
-    speedtestResult
+    speedtestResult,
+    speedtestPing
   } = props
 
   const delay = useMemo(() => {
+    if (speedtestPing !== undefined && speedtestPing > 0) return speedtestPing
     if (proxy.history.length > 0) {
       return proxy.history[proxy.history.length - 1].delay
     }
     return -1
-  }, [proxy.history])
+  }, [proxy.history, speedtestPing])
 
   const [loading, setLoading] = useState(false)
 
@@ -207,7 +210,8 @@ const ProxyItem = React.memo(ProxyItemBase, (prevProps, nextProps) => {
     prevProps.proxyDisplayMode === nextProps.proxyDisplayMode &&
     prevProps.group.fixed === nextProps.group.fixed &&
     prevProps.isGroupTesting === nextProps.isGroupTesting &&
-    prevProps.speedtestResult === nextProps.speedtestResult
+    prevProps.speedtestResult === nextProps.speedtestResult &&
+    prevProps.speedtestPing === nextProps.speedtestPing
   )
 })
 

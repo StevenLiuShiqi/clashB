@@ -85,3 +85,9 @@ MIHOMO_TEST_BINARY=/absolute/path/to/mihomo pnpm exec vitest run src/main/speedt
 7. 确认快速检查结果没有被描述为视频平台可访问或持续播放不卡的保证。
 
 本说明不包含个人订阅信息或真实节点的测速记录。
+
+## JMS 自动组
+
+当前运行配置若有 `JMS` Selector，clashB 将其视为唯一下载测速源。运行配置会额外提供 `JMS Auto Ping`（Mihomo URLTest）和 `JMS Auto Bandwidth`（clashB 维护的 Selector）。每轮只对 JMS 源组测试一次，结果缓存后同步到三个组的节点展示，不对 Auto 组重复下载。
+
+自动调度选项为关闭、5 分钟、10 分钟、30 分钟、1 小时，默认 5 分钟。调度任务不重叠，配置/内核变化会取消当前任务；不会改变 JMS 源组当前选择。带宽组选择顺序为：成功达标结果的最大带宽 → 所有有实际数据结果的最大带宽 → 保留当前选择。

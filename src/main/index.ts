@@ -21,6 +21,7 @@ import { createTray } from './resolve/tray'
 import { init, initBasic, safeShowErrorBox, startSubStoreServices } from './utils/init'
 import { initShortcut } from './resolve/shortcut'
 import { initProfileUpdater } from './core/profileUpdater'
+import { startJmsBandwidthScheduler } from './speedtest/jmsScheduler'
 import { startMonitor } from './resolve/trafficMonitor'
 import { showFloatingWindow } from './resolve/floatingWindow'
 import { logger, createLogger } from './utils/logger'
@@ -350,6 +351,9 @@ app
         if (startPromises.length > 0) {
           startPromises[0].then(async () => {
             await Promise.allSettled([
+              startJmsBandwidthScheduler().catch((e) =>
+                mainLogger.warn('Failed to start JMS bandwidth scheduler', e)
+              ),
               initProfileUpdater().catch((e) =>
                 mainLogger.warn('Failed to init profile updater', e)
               ),

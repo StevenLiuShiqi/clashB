@@ -48,6 +48,7 @@ export const defaultConfig: IAppConfig = {
   proxyDisplayOrder: 'default',
   autoCheckUpdate: false,
   autoUpdateProfileOnStart: true,
+  jmsBandwidthCheckIntervalMinutes: 5,
   silentUpdate: true,
   autoCloseConnection: true,
   subscriptionTimeout: 30000,

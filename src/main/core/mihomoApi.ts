@@ -324,6 +324,14 @@ export const mihomoGroups = async (includeHidden = false): Promise<IMihomoMixedG
       rawGroups.push({ group: global, providers: [] })
     }
   }
+  const derivedNames = new Set(['JMS Auto Ping', 'JMS Auto Bandwidth'])
+  for (const name of derivedNames) {
+    if (rawGroups.some(({ group }) => group.name === name)) continue
+    const derived = proxies.proxies[name]
+    if (isMihomoGroup(derived) && (includeHidden || !derived.hidden)) {
+      rawGroups.push({ group: derived, providers: [] })
+    }
+  }
 
   const missingProxyNames = new Set<string>()
   const providerNames = new Set<string>()
