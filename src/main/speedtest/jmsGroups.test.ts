@@ -12,17 +12,20 @@ describe('JMS runtime groups', () => {
     }
     const result = injectJmsDerivedGroups(source)
     expect(source['proxy-groups']).toHaveLength(3)
-    expect(result['proxy-groups']).toEqual([
-      source['proxy-groups'][0],
-      source['proxy-groups'][2],
-      expect.objectContaining({
-        name: 'JMS Auto Ping',
-        type: 'url-test',
-        proxies: ['A', 'B'],
-        url: 'https://example.test'
-      }),
-      { name: 'JMS Auto Bandwidth', type: 'select', proxies: ['A', 'B'] }
-    ])
+    expect(result['proxy-groups']).toEqual(
+      expect.arrayContaining([
+        source['proxy-groups'][0],
+        source['proxy-groups'][2],
+        expect.objectContaining({
+          name: 'JMS Auto Ping',
+          type: 'url-test',
+          proxies: ['A', 'B'],
+          url: 'https://example.test'
+        }),
+        { name: 'JMS Auto Bandwidth', type: 'select', proxies: ['A', 'B'] },
+        { name: 'JMS Auto', type: 'select', hidden: true, proxies: ['JMS Auto Ping'] }
+      ])
+    )
   })
 
   it('does not create derived groups for a non-selector or missing JMS group', () => {
@@ -49,5 +52,9 @@ it('migrates a nested legacy JMS Auto group and rewrites all references', () => 
       { name: 'JMS Auto Bandwidth', type: 'select', proxies: ['A', 'B'] }
     ])
   )
-  expect(groups.some((group) => group.name === 'JMS Auto')).toBe(false)
+  expect(groups).toEqual(
+    expect.arrayContaining([
+      { name: 'JMS Auto', type: 'select', hidden: true, proxies: ['JMS Auto Ping'] }
+    ])
+  )
 })

@@ -109,6 +109,14 @@ export function injectJmsDerivedGroups<T extends object>(config: T): T {
     proxies: jmsProxies
   }
   const bandwidth = { name: JMS_AUTO_BANDWIDTH_GROUP, type: 'select', proxies: jmsProxies }
+  // Keep a hidden compatibility alias so subscriptions or overrides that still refer to
+  // the legacy JMS Auto name cannot fail validation while users see only the two new groups.
+  const legacyAlias = {
+    name: 'JMS Auto',
+    type: 'select',
+    hidden: true,
+    proxies: [JMS_AUTO_PING_GROUP]
+  }
   const filtered = groups
     .filter((group) => {
       if (!group || typeof group !== 'object') return true
@@ -127,7 +135,7 @@ export function injectJmsDerivedGroups<T extends object>(config: T): T {
       }
       return next
     })
-  return { ...config, 'proxy-groups': [...filtered, ping, bandwidth] }
+  return { ...config, 'proxy-groups': [...filtered, ping, bandwidth, legacyAlias] }
 }
 
 // Inject into the core-only copy. Never persist credentials or this group to a subscription/export.
